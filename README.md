@@ -7,10 +7,11 @@ An intelligent AI agent that manages your inbox using LangChain and OpenAI GPT-4
 - 📧 **Email Reading**: Connect to Gmail via API
 - 🏷️ **Smart Categorization**: Classify emails (urgent, promotional, personal, work)
 - 📝 **Intelligent Summarization**: Generate concise summaries of email threads
-- ✍️ **Draft Responses**: Auto-generate contextual replies
+- ✍️ **Draft Responses**: Auto-generate contextual replies with multiple tone options
 - 🚨 **Priority Detection**: Flag important emails using sentiment analysis
 - 📋 **Action Extraction**: Identify tasks, meetings, and deadlines
 - 🧠 **Conversation Memory**: Track context across email threads
+- 🎨 **Streamlit UI**: Beautiful web interface for visual interaction
 
 ## Architecture
 
@@ -28,7 +29,8 @@ Email Inbox → Fetch Agent → Categorizer → Summarizer → Action Detector
 - **OpenAI API** - GPT-4 for understanding
 - **Gmail API** - Email access
 - **SQLite** - Local email cache
-- **Streamlit** - Web UI (optional)
+- **Streamlit** - Web UI
+- **Rich** - Beautiful CLI output
 
 ## Setup
 
@@ -55,22 +57,29 @@ cp .env.example .env
 
 ### 4. Run the Agent
 
+**CLI Mode:**
 ```bash
-python main.py
+python main.py --help
+```
+
+**Web UI:**
+```bash
+streamlit run app.py
 ```
 
 ## Project Structure
 
 ```
 project-1-email-agent/
-├── main.py                 # Entry point
+├── main.py                 # CLI entry point
+├── app.py                  # Streamlit UI
 ├── agents/
 │   ├── __init__.py
 │   ├── email_fetcher.py    # Gmail API integration
 │   ├── categorizer.py      # Email classification
-│   ├── summarizer.py       # Thread summarization
-│   ├── responder.py        # Response generation
-│   └── action_extractor.py # Task/deadline detection
+│   ├── summarizer.py       # Thread summarization ✨ NEW
+│   ├── responder.py        # Response generation ✨ NEW
+│   └── action_extractor.py # Task/deadline detection ✨ NEW
 ├── utils/
 │   ├── __init__.py
 │   ├── db.py              # SQLite operations
@@ -83,6 +92,7 @@ project-1-email-agent/
 ├── .env                   # API keys (gitignored)
 ├── .env.example          # Example env file
 ├── requirements.txt      # Python dependencies
+├── ARCHITECTURE.md       # Architecture documentation
 └── README.md            # This file
 ```
 
@@ -92,23 +102,44 @@ project-1-email-agent/
 
 ```bash
 # Fetch and categorize recent emails
-python main.py --fetch --limit 10
+python main.py fetch --limit 10
 
-# Summarize a specific email thread
-python main.py --summarize --thread-id <thread_id>
+# List emails by category
+python main.py list-emails --category URGENT
+
+# Summarize a specific email
+python main.py summarize <email_id>
 
 # Draft a response
-python main.py --draft --email-id <email_id>
+python main.py draft <email_id> --tone professional
 
-# Extract actions from emails
-python main.py --extract-actions
+# Extract actions from an email
+python main.py extract-actions <email_id>
+
+# View all pending actions
+python main.py actions
+
+# Mark action as complete
+python main.py complete-action <action_id>
+
+# View statistics
+python main.py stats
+
+# Setup wizard
+python main.py setup
 ```
 
-### Streamlit UI (Optional)
+### Streamlit UI
 
 ```bash
 streamlit run app.py
 ```
+
+Features:
+- 📥 **Inbox View**: Browse and filter emails
+- 📊 **Analytics Dashboard**: Visualize email patterns
+- 📋 **Action Tracker**: Manage tasks and deadlines
+- ⚙️ **Settings**: Configure and manage database
 
 ## Learning Outcomes
 

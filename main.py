@@ -1,5 +1,6 @@
 """Main entry point for the Email Management Agent."""
 
+import json
 import click
 from rich.console import Console
 from rich.table import Table
@@ -181,6 +182,181 @@ Run: pip install -r requirements.txt
     
     console.print("\n[green]✓ Setup guide complete![/green]")
     console.print("\nRun 'python main.py fetch' to start fetching emails.")
+
+
+@cli.command()
+@click.argument('email_id')
+def summarize(email_id: str):
+    """Summarize a specific email."""
+    from agents.summarizer import EmailSummarizer
+    
+    db = EmailDatabase()
+    email = db.get_email(email_id)
+    
+    if not email:
+        console.print(f"[red]Email {email_id} not found.[/red]")
+        db.close()
+        return
+    
+    console.print(Panel.fit(
+        f"📝 Summarizing email: {email.get('subject', 'No Subject')}",
+        style="bold blue"
+    ))
+    
+    summarizer = EmailSummarizer()
+    summary = summarizer.summarize_email(email)
+    
+    console.print(Panel(summary, title="Summary", style="green"))
+    
+    # Show key points
+    key_points = summarizer.get_key_points(email)
+    if key_points:
+        console.print("\n[bold]Key Points:[/bold]")
+        for point in key_points:
+            console.print(f"  • {point}")
+    
+    db.close()
+
+
+@cli.command()
+@click.argument('email_id')
+@click.option('--tone', default='professional', help='Response tone')
+def draft(email_id: str, tone: str):
+    """Draft a response to an email."""
+    from agents.responder import EmailResponder
+    
+    db = EmailDatabase()
+    email = db.get_email(email_id)
+    
+    if not email:
+        console.print(f"[red]Email {email_id} not found.[/red]")
+        db.close()
+        return
+    
+    console.print(Panel.fit(
+        f"✍️ Drafting response to: {email.get('subject', 'No Subject')}",
+        style="bold blue"
+    ))
+    
+    responder = EmailResponder()
+    draft_response = responder.draft_response(email, tone=tone)
+    
+    console.print(Panel(draft_response, title="Draft Response", style="green"))
+    console.print("\n[dim]Draft saved to database[/dim]")
+    
+    db.close()
+
+
+@cli.command()
+@click.argument('email_id')
+def extract_actions(email_id: str):
+    """Extract action items from an email."""
+    from agents.action_extractor import ActionExtractor
+    
+    db = EmailDatabase()
+    email = db.get_email(email_id)
+    
+    if not email:
+        console.print(f"[red]Email {email_id} not found.[/red]")
+        db.close()
+        return
+    
+    console.print(Panel.fit(
+        f"📋 Extracting actions from: {email.get('subject', 'No Subject')}",
+        style="bold blue"
+    ))
+    
+    extractor = ActionExtractor()
+    actions = extractor.extract_actions(email)
+    
+    if not actions:
+        console.print("[yellow]No action items found.[/yellow]")
+        db.close()
+        return
+    
+    table = Table(title="Action Items")
+    table.add_column("Description", style="cyan", no_wrap=False)
+    table.add_column("Deadline", style="magenta")
+    table.add_column("Priority", style="green")
+    
+    for action in actions:
+        table.add_row(
+            action.get('description', ''),
+            action.get('deadline', 'No deadline'),
+            action.get('priority', 'medium')
+        )
+    
+    console.print(table)
+    console.print("\n[dim]Actions saved to database[/dim]")
+    
+    db.close()
+
+
+@cli.command()
+def actions():
+    """Show all pending action items."""
+    from agents.action_extractor import ActionExtractor
+    
+    extractor = ActionExtractor()
+    pending_actions = extractor.db.get_pending_actions()
+    
+    if not pending_actions:
+        console.print("[yellow]No pending actions.[/yellow]")
+        return
+    
+    # Summary
+    summary = extractor.get_action_summary()
+    console.print(Panel.fit(
+        f"📊 Action Summary\n\n"
+        f"Total Pending: {summary['total_pending']}\n"
+        f"High Priority: {summary['high_priority']}\n"
+        f"Overdue: {summary['overdue']}",
+        style="bold blue"
+    ))
+    
+    # Table
+    table = Table(title="Pending Actions")
+    table.add_column("ID", justify="right", style="cyan")
+    table.add_column("Description", style="white", no_wrap=False, max_width=40)
+    table.add_column("From Email", style="magenta", max_width=30)
+    table.add_column("Deadline", style="yellow")
+    table.add_column("Priority", style="green")
+    
+    for action in pending_actions:
+        people_str = action.get('people', '')
+        if people_str:
+            try:
+                people = json.loads(people_str) if isinstance(people_str, str) else people_str
+                people_display = ', '.join(people[:2])
+            except:
+                people_display = ''
+        else:
+            people_display = ''
+        
+        table.add_row(
+            str(action.get('id', '')),
+            action.get('description', '')[:40],
+            action.get('subject', '')[:30],
+            action.get('deadline', 'None'),
+            action.get('priority', 'medium')
+        )
+    
+    console.print(table)
+
+
+@cli.command()
+@click.argument('action_id', type=int)
+def complete_action(action_id: int):
+    """Mark an action as completed."""
+    from agents.action_extractor import ActionExtractor
+    
+    extractor = ActionExtractor()
+    success = extractor.mark_action_complete(action_id)
+    
+    if success:
+        console.print(f"[green]✓ Action {action_id} marked as complete![/green]")
+    else:
+        console.print(f"[red]Failed to mark action {action_id} as complete.[/red]")
 
 
 if __name__ == '__main__':
